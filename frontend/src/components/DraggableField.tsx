@@ -27,7 +27,6 @@ export const DraggableField: React.FC<DraggableFieldProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // Convert normalized coordinates to pixels
   const left = field.xPct * pageWidth;
   const top = field.yPct * pageHeight;
   const width = field.wPct * pageWidth;
@@ -57,7 +56,6 @@ export const DraggableField: React.FC<DraggableFieldProps> = ({
         const newLeft = e.clientX - dragStart.x;
         const newTop = e.clientY - dragStart.y;
 
-        // Clamp to page bounds
         const clampedLeft = Math.max(0, Math.min(newLeft, pageWidth - width));
         const clampedTop = Math.max(0, Math.min(newTop, pageHeight - height));
 
@@ -73,7 +71,6 @@ export const DraggableField: React.FC<DraggableFieldProps> = ({
         const newWidth = Math.max(50, width + deltaX);
         const newHeight = Math.max(30, height + deltaY);
 
-        // Clamp to page bounds
         const clampedWidth = Math.min(newWidth, pageWidth - left);
         const clampedHeight = Math.min(newHeight, pageHeight - top);
 
@@ -139,7 +136,6 @@ export const DraggableField: React.FC<DraggableFieldProps> = ({
       onMouseDown={handleMouseDown}
       onClick={handleFieldClick}
     >
-      {/* Field content */}
       <div className="flex items-center justify-center h-full text-xs font-semibold select-none">
         {mode === 'edit' ? (
           <span>{getFieldLabel(field.type)}</span>
@@ -156,7 +152,6 @@ export const DraggableField: React.FC<DraggableFieldProps> = ({
         )}
       </div>
 
-      {/* Delete button (edit mode only) */}
       {mode === 'edit' && (
         <button
           onClick={(e) => {
@@ -169,7 +164,6 @@ export const DraggableField: React.FC<DraggableFieldProps> = ({
         </button>
       )}
 
-      {/* Resize handle (edit mode only) */}
       {mode === 'edit' && (
         <div
           onMouseDown={handleResizeMouseDown}

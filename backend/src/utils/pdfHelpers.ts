@@ -16,18 +16,11 @@ export function normalizeToPdfCoordinates(
     pageWidthPt: number,
     pageHeightPt: number
 ): { x: number; y: number; width: number; height: number } {
-    // Convert percentage-based dimensions to points
     const boxWidthPt = field.wPct * pageWidthPt;
     const boxHeightPt = field.hPct * pageHeightPt;
 
-    // X coordinate: same for both systems (left to right)
     const xPt = field.xPct * pageWidthPt;
 
-    // Y coordinate conversion:
-    // - field.yPct is measured from TOP (web convention)
-    // - PDF measures from BOTTOM
-    // - So we flip: topPt = pageHeight - (yPct * pageHeight)
-    // - Then subtract box height to get bottom-left corner
     const topPt = pageHeightPt - (field.yPct * pageHeightPt);
     const yPt = topPt - boxHeightPt;
 
@@ -54,25 +47,20 @@ export function fitSignatureInsideBox(
     const { width: imgWidth, height: imgHeight } = signatureDims;
     const { width: boxWidthPt, height: boxHeightPt, x: boxX, y: boxY } = boxDims;
 
-    // Calculate aspect ratios
     const sigAspect = imgWidth / imgHeight;
     const boxAspect = boxWidthPt / boxHeightPt;
 
     let drawWidthPt: number;
     let drawHeightPt: number;
 
-    // Fit signature to box while maintaining aspect ratio
     if (sigAspect > boxAspect) {
-        // Signature is wider than box - fit to width
         drawWidthPt = boxWidthPt;
         drawHeightPt = boxWidthPt / sigAspect;
     } else {
-        // Signature is taller or equal - fit to height
         drawHeightPt = boxHeightPt;
         drawWidthPt = boxHeightPt * sigAspect;
     }
 
-    // Center the signature in the box
     const xDrawPt = boxX + (boxWidthPt - drawWidthPt) / 2;
     const yDrawPt = boxY + (boxHeightPt - drawHeightPt) / 2;
 

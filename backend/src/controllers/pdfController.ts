@@ -6,10 +6,6 @@ import * as crypto from 'crypto';
 import { AuditLog, PdfField } from '../models/AuditLog';
 import { normalizeToPdfCoordinates, fitSignatureInsideBox } from '../utils/pdfHelpers';
 
-/**
- * POST /api/sign-pdf
- * Main endpoint for signing PDFs with signature fields
- */
 export async function signPdf(req: Request, res: Response) {
     try {
         const { pdfId, fields, signatureImageBase64 } = req.body;
@@ -21,7 +17,6 @@ export async function signPdf(req: Request, res: Response) {
             });
         }
 
-        // Load original PDF from disk
         const pdfPath = path.join(__dirname, '../../pdfs', `${pdfId}.pdf`);
 
         if (!fs.existsSync(pdfPath)) {
@@ -33,21 +28,16 @@ export async function signPdf(req: Request, res: Response) {
 
         const originalPdfBuffer = fs.readFileSync(pdfPath);
 
-        // Compute SHA-256 hash of original PDF
         const originalHash = crypto
             .createHash('sha256')
             .update(originalPdfBuffer)
             .digest('hex');
 
-        // Load PDF with pdf-lib
         const pdfDoc = await PDFDocument.load(originalPdfBuffer);
 
-        // Embed signature image
-        // Remove data URL prefix if present
         const base64Data = signatureImageBase64.replace(/^data:image\/\w+;base64,/, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
 
-        // Detect image type and embed
         let signatureImage;
         try {
             signatureImage = await pdfDoc.embedPng(imageBuffer);
@@ -64,7 +54,6 @@ export async function signPdf(req: Request, res: Response) {
 
         const imgDims = signatureImage.scale(1);
 
-        // Process each signature field
         const signatureFields = (fields as PdfField[]).filter(f => f.type === 'signature');
 
         for (const field of signatureFields) {
@@ -76,16 +65,13 @@ export async function signPdf(req: Request, res: Response) {
 
             const { width: pageWidthPt, height: pageHeightPt } = page.getSize();
 
-            // Convert normalized coordinates to PDF points
             const boxCoords = normalizeToPdfCoordinates(field, pageWidthPt, pageHeightPt);
 
-            // Fit signature inside box with aspect ratio
             const drawCoords = fitSignatureInsideBox(
                 { width: imgDims.width, height: imgDims.height },
                 boxCoords
             );
 
-            // Draw signature on page
             page.drawImage(signatureImage, {
                 x: drawCoords.x,
                 y: drawCoords.y,
@@ -94,16 +80,13 @@ export async function signPdf(req: Request, res: Response) {
             });
         }
 
-        // Save modified PDF
         const signedPdfBuffer = await pdfDoc.save();
 
-        // Compute SHA-256 hash of signed PDF
         const signedHash = crypto
             .createHash('sha256')
             .update(signedPdfBuffer)
             .digest('hex');
 
-        // Save signed PDF to disk
         const signedDir = path.join(__dirname, '../../signed');
         if (!fs.existsSync(signedDir)) {
             fs.mkdirSync(signedDir, { recursive: true });
@@ -114,7 +97,6 @@ export async function signPdf(req: Request, res: Response) {
         const signedPath = path.join(signedDir, signedFilename);
         fs.writeFileSync(signedPath, signedPdfBuffer);
 
-        // Store audit log in MongoDB
         const auditLog = new AuditLog({
             pdfId,
             originalHash,
@@ -128,7 +110,6 @@ export async function signPdf(req: Request, res: Response) {
 
         await auditLog.save();
 
-        // Return success response
         const signedPdfUrl = `${req.protocol}://${req.get('host')}/signed/${signedFilename}`;
 
         res.json({
@@ -148,10 +129,6 @@ export async function signPdf(req: Request, res: Response) {
     }
 }
 
-/**
- * GET /api/pdfs/:pdfId
- * Returns the original PDF file
- */
 export async function getPdf(req: Request, res: Response) {
     try {
         const { pdfId } = req.params;

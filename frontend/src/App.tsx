@@ -93,7 +93,6 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Header */}
       <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
@@ -138,7 +137,6 @@ function App() {
         </div>
       </header>
 
-      {/* Error/Success Messages */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mx-4 mt-4 rounded">
           <strong>Error:</strong> {error}
@@ -159,7 +157,6 @@ function App() {
         </div>
       )}
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {mode === 'edit' && <Toolbox items={toolboxItems} />}
         
@@ -174,7 +171,6 @@ function App() {
         />
       </div>
 
-      {/* Signature Pad Modal */}
       {showSignaturePad && (
         <SignaturePad
           onSave={handleSignatureSave}
@@ -182,7 +178,6 @@ function App() {
         />
       )}
 
-      {/* Footer */}
       <footer className="bg-gray-800 text-white text-center py-3 text-sm">
         <p>
           Built with React + TypeScript + Node.js + MongoDB | 

@@ -3,7 +3,6 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import type { PdfField, FieldType, AppMode } from '../types';
 import { DraggableField } from './DraggableField';
 
-// Set up PDF.js worker - use local worker from node_modules
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
@@ -114,7 +113,6 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
               renderAnnotationLayer={true}
             />
             
-            {/* Overlay for fields */}
             {pageWidth > 0 && pageHeight > 0 && (
               <div
                 className="absolute top-0 left-0 pointer-events-none"
