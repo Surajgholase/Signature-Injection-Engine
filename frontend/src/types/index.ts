@@ -33,3 +33,9 @@ export interface SignPdfResponse {
     signedHash?: string;
     error?: string;
 }
+export interface UploadPdfResponse {
+    success: boolean;
+    pdfId?: string;
+    filename?: string;
+    error?: string;
+}

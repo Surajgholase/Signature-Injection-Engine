@@ -50,9 +50,27 @@ async function createSamplePdf() {
             color: rgb(0, 0, 0)
         });
         yPosition -= 20;
+      });
+
+    // Add a second page
+    const page2 = pdfDoc.addPage([595.28, 841.89]);
+    page2.drawText('Second Page', {
+        x: 50,
+        y: 841.89 - 50,
+        size: 24,
+        font: boldFont,
+        color: rgb(0, 0, 0)
+    });
+    page2.drawText('This is the second page of the sample PDF document.', {
+        x: 50,
+        y: 841.89 - 100,
+        size: 12,
+        font,
+        color: rgb(0, 0, 0)
     });
 
     const pdfBytes = await pdfDoc.save();
+
 
     const outputPath = path.join(__dirname, 'pdfs', 'sample-a4.pdf');
     fs.writeFileSync(outputPath, pdfBytes);

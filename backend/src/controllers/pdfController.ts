@@ -153,3 +153,29 @@ export async function getPdf(req: Request, res: Response) {
         });
     }
 }
+export async function uploadPdf(req: Request, res: Response) {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'No file uploaded'
+            });
+        }
+
+        // Return the filename without extension as pdfId
+        const pdfId = path.basename(req.file.filename, '.pdf');
+
+        res.json({
+            success: true,
+            pdfId,
+            filename: req.file.filename
+        });
+
+    } catch (error) {
+        console.error('Error uploading PDF:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error while uploading PDF'
+        });
+    }
+}

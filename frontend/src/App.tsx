@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PdfViewer } from './components/PdfViewer';
 import { Toolbox } from './components/Toolbox';
 import { SignaturePad } from './components/SignaturePad';
-import type { PdfField, AppMode, ToolboxItem, SignPdfRequest, SignPdfResponse } from './types';
+import type { PdfField, AppMode, ToolboxItem, SignPdfRequest, SignPdfResponse, UploadPdfResponse } from './types';
 import './App.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
@@ -24,8 +24,9 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [signedPdfUrl, setSignedPdfUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
-
-  const pdfId = 'sample-a4';
+  const [pdfId, setPdfId] = useState<string>('sample-a4');
+  const [isUploading, setIsUploading] = useState(false);
+  
   const pdfUrl = `${API_BASE_URL}/pdfs/${pdfId}`;
 
   const handleModeToggle = () => {
@@ -85,6 +86,48 @@ function App() {
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      setError('Please upload a valid PDF file.');
+      return;
+    }
+
+    setIsUploading(true);
+    setError('');
+    setSignedPdfUrl('');
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/upload-pdf`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data: UploadPdfResponse = await response.json();
+
+      if (data.success && data.pdfId) {
+        setPdfId(data.pdfId);
+        setFields([]); // Clear fields when a new PDF is uploaded
+        setMode('edit');
+        setSignatureDataUrl('');
+      } else {
+        setError(data.error || 'Failed to upload PDF');
+      }
+    } catch (err) {
+      console.error('Error uploading PDF:', err);
+      setError('Failed to connect to the server. Please ensure the backend is running.');
+    } finally {
+      setIsUploading(false);
+      // Reset input value
+      event.target.value = '';
+    }
+  };
+
   const handleClearFields = () => {
     if (confirm('Are you sure you want to clear all fields?')) {
       setFields([]);
@@ -101,6 +144,22 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4">
+            <div className="flex items-center bg-white bg-opacity-20 rounded-lg px-3 py-1.5 border border-white border-opacity-30">
+              <label htmlFor="pdf-upload" className="flex items-center gap-2 cursor-pointer group">
+                <span className="text-sm font-medium group-hover:text-blue-200 transition">
+                  {isUploading ? '📤 Uploading...' : '📁 Upload PDF'}
+                </span>
+                <input
+                  id="pdf-upload"
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                />
+              </label>
+            </div>
+
             <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-lg px-4 py-2">
               <span className="text-sm font-medium">Mode:</span>
               <button

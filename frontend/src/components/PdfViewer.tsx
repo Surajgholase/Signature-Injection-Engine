@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import type { PdfField, FieldType, AppMode } from '../types';
 import { DraggableField } from './DraggableField';
@@ -18,6 +18,11 @@ interface PdfViewerProps {
   signatureDataUrl?: string;
 }
 
+interface PageDimensions {
+  width: number;
+  height: number;
+}
+
 export const PdfViewer: React.FC<PdfViewerProps> = ({
   pdfUrl,
   pdfId,
@@ -28,19 +33,21 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   signatureDataUrl
 }) => {
   const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber] = useState<number>(1);
-  const [pageWidth, setPageWidth] = useState<number>(0);
-  const [pageHeight, setPageHeight] = useState<number>(0);
-  const pageContainerRef = useRef<HTMLDivElement>(null);
+  const [pagesDimensions, setPagesDimensions] = useState<Record<number, PageDimensions>>({});
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
   };
 
-  const onPageLoadSuccess = (page: any) => {
+  const onPageLoadSuccess = (page: any, pageIndex: number) => {
     const viewport = page.getViewport({ scale: 1 });
-    setPageWidth(viewport.width);
-    setPageHeight(viewport.height);
+    setPagesDimensions(prev => ({
+      ...prev,
+      [pageIndex]: {
+        width: viewport.width,
+        height: viewport.height
+      }
+    }));
   };
 
   const handleDrop = (e: React.DragEvent, pageIndex: number) => {
@@ -51,9 +58,10 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     const fieldType = e.dataTransfer.getData('fieldType') as FieldType;
     if (!fieldType) return;
 
-    const container = pageContainerRef.current;
-    if (!container) return;
+    const dimensions = pagesDimensions[pageIndex];
+    if (!dimensions) return;
 
+    const container = e.currentTarget as HTMLDivElement;
     const rect = container.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -67,10 +75,10 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
       pdfId,
       pageIndex,
       type: fieldType,
-      xPct: x / pageWidth,
-      yPct: y / pageHeight,
-      wPct: defaultWidth / pageWidth,
-      hPct: defaultHeight / pageHeight
+      xPct: x / dimensions.width,
+      yPct: y / dimensions.height,
+      wPct: defaultWidth / dimensions.width,
+      hPct: defaultHeight / dimensions.height
     };
 
     onFieldsChange([...fields, newField]);
@@ -94,57 +102,60 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
 
   return (
     <div className="flex-1 overflow-auto bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto flex flex-col gap-8">
         <Document
           file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
-          className="shadow-lg"
+          className="flex flex-col gap-8 items-center"
         >
-          <div
-            ref={pageContainerRef}
-            className="relative inline-block bg-white"
-            onDrop={(e) => handleDrop(e, pageNumber - 1)}
-            onDragOver={handleDragOver}
-          >
-            <Page
-              pageNumber={pageNumber}
-              onLoadSuccess={onPageLoadSuccess}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
-            
-            {pageWidth > 0 && pageHeight > 0 && (
-              <div
-                className="absolute top-0 left-0 pointer-events-none"
-                style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
-              >
-                {fields
-                  .filter(f => f.pageIndex === pageNumber - 1)
-                  .map(field => (
-                    <div key={field.id} className="pointer-events-auto">
-                      <DraggableField
-                        field={field}
-                        pageWidth={pageWidth}
-                        pageHeight={pageHeight}
-                        mode={mode}
-                        onUpdate={updateField}
-                        onDelete={deleteField}
-                        onSignatureClick={onSignatureClick}
-                        signatureDataUrl={signatureDataUrl}
-                      />
-                    </div>
-                  ))}
+          {Array.from(new Array(numPages), (_, index) => (
+            <div
+              key={`page_${index + 1}`}
+              className="relative shadow-lg bg-white"
+              onDrop={(e) => handleDrop(e, index)}
+              onDragOver={handleDragOver}
+            >
+              <Page
+                pageNumber={index + 1}
+                onLoadSuccess={(page) => onPageLoadSuccess(page, index)}
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+              />
+              
+              {pagesDimensions[index] && (
+                <div
+                  className="absolute top-0 left-0 pointer-events-none"
+                  style={{ 
+                    width: `${pagesDimensions[index].width}px`, 
+                    height: `${pagesDimensions[index].height}px` 
+                  }}
+                >
+                  {fields
+                    .filter(f => f.pageIndex === index)
+                    .map(field => (
+                      <div key={field.id} className="pointer-events-auto">
+                        <DraggableField
+                          field={field}
+                          pageWidth={pagesDimensions[index].width}
+                          pageHeight={pagesDimensions[index].height}
+                          mode={mode}
+                          onUpdate={updateField}
+                          onDelete={deleteField}
+                          onSignatureClick={onSignatureClick}
+                          signatureDataUrl={signatureDataUrl}
+                        />
+                      </div>
+                    ))}
+                </div>
+              )}
+              <div className="absolute -bottom-6 left-0 right-0 text-center text-xs text-gray-400 select-none">
+                Page {index + 1} of {numPages}
               </div>
-            )}
-          </div>
+            </div>
+          ))}
         </Document>
-
-        {numPages > 1 && (
-          <div className="mt-4 text-center text-gray-600">
-            Page {pageNumber} of {numPages}
-          </div>
-        )}
       </div>
     </div>
   );
 };
+
